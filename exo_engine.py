@@ -1,12 +1,16 @@
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from astropy.io import fits, ascii
 from astropy.table import Table
 import batman
 from ipywidgets import interactive, fixed
 from IPython.display import display
+import pdb
+import os
 
-plt.rcParams.update({'font.size': 18})
+plt.rcParams.update({'font.size': 18,'figure.figsize': (10,8)})
 
 t = np.linspace(-1,1,100) ## time
 
@@ -61,31 +65,31 @@ class spectral_lc:
         #self.limb_dark_arr = [   0.1 , 0.15   ,   0.2,   0.25     , 0.3     , 0.35]
 
     
-    def calc_radii(self,slope=-0.3):
-        self.radius_array = 0.1 + slope * (self.wavelengths - 2.5) / 50.
+    def calc_radii(self,r_slope=-0.3):
+        self.radius_array = 0.1 + r_slope * (self.wavelengths - 2.5) / 50.
     
-    def plot_lc_multicolor_loop(self,slope=slopeStart):
-        self.calc_radii(slope=slope)
+    def plot_lc_multicolor_loop(self,r_slope=slopeStart):
+        self.calc_radii(r_slope=r_slope)
         for one_radius,one_color in zip(self.radius_array,self.colors_array):
             plot_lc(one_radius,color=one_color)
     
-    def plot_lc_multicolor(self,slope=-0.3):
-        lc_multi = interactive(self.plot_lc_multicolor_loop, slope=(slopeStart,slopeEnd,0.02))
+    def plot_lc_multicolor(self,r_slope=-0.3):
+        lc_multi = interactive(self.plot_lc_multicolor_loop, r_slope=(slopeStart,slopeEnd,0.02))
         display(lc_multi)
     
-    def spectrum_plot(self,slope=slopeStart):
-        self.calc_radii(slope=slope)
+    def spectrum_plot(self,r_slope=slopeStart):
+        self.calc_radii(r_slope=r_slope)
         plt.plot(self.wavelengths,self.radius_array * 10.)
         plt.xlabel('Wavelength (microns)')
         plt.ylabel('Size (Jupiter Radii)')
         plt.ylim(0.8,1.1)
         
     def spectrum_plot_i(self):
-        spec_p = interactive(self.spectrum_plot,slope=(slopeStart,slopeEnd,0.02))
+        spec_p = interactive(self.spectrum_plot,r_slope=(slopeStart,slopeEnd,0.02))
         display(spec_p)
         
-    def visualize_colors(self,slope=slopeStart):
-        self.calc_radii(slope=slope)
+    def visualize_colors(self,r_slope=slopeStart):
+        self.calc_radii(r_slope=r_slope)
         
         fig, ax = plt.subplots(figsize=(8,8))
         ax.set_aspect('equal')
@@ -104,7 +108,127 @@ class spectral_lc:
         ax.set_ylabel('Y Size in Jupiters')
     
     def visualize_colors_i(self):
-        size_p = interactive(self.visualize_colors,slope=(slopeStart,slopeEnd,0.02))
+        size_p = interactive(self.visualize_colors,r_slope=(slopeStart,slopeEnd,0.02))
         display(size_p)
-        
+
+convertDict = {'H2O':'H$_2$O','CH4':'CH$_4$','CO2':'CO$_2$','Cloudy':'Cloudy'}
+
+def show_example_spectra(atmospheres=['H2O','CH4','CO2','Cloudy']):
+    dat = Table.read('opacity_breakdown_gto_f_hd189733b.fits')
+    dat['Cloudy'] = 0.035
     
+    if len(atmospheres) > 1:
+        fig, ax2D = plt.subplots(2,2,figsize=(12,12))
+        axArr = np.ravel(ax2D)
+    else:
+        fig, oneAx = plt.subplots()
+        axArr = [oneAx]
+    
+    
+    
+    for ind,atmosphere in enumerate(atmospheres):
+        ax = axArr[ind]
+        if atmosphere in list(convertDict.keys()):
+            thisLabel = convertDict[atmosphere]
+        else:
+            thisLabel = atmosphere
+    
+        rad = np.sqrt(dat[atmosphere]) * 10.
+        rad = (rad - np.mean(rad)) * 60. + np.mean(rad) ## exaggerate to see better
+        ax.plot(dat['Wave'],rad,label=thisLabel)
+        ax.set_xlim(2.5,5)
+        ax.set_ylim(1.0,2.0)
+        ax.legend()
+        ax.set_xlabel('Wavelength (microns)')
+        ax.set_ylabel('Size (Jupiter Radii)')
+
+
+
+lc_offset = 0.015
+
+class atmospheric_lc():
+    def __init__(self,mysteryNum=1):
+        
+        datName = 'mystery_lc_{}.fits'.format(mysteryNum)
+        if os.path.exists(datName):
+            HDUList = fits.open(datName)
+        else:
+            raise Exception("Mystery {} not found".format(mysterNum))
+        
+        self.wavelengths = HDUList['WAVE'].data
+        self.lcData = HDUList['FLUX'].data
+        self.radii = np.ones_like(self.wavelengths) * 1.5
+        self.colors_array = cm.rainbow(np.linspace(0, 1, len(self.wavelengths)))
+        self.orig_time = HDUList['TIME'].data
+        self.time = np.linspace(-1,1,100) ## time
+        
+        HDUList.close()
+        
+    def plot_lc_engine(self):
+        
+        for ind,oneRad in enumerate(self.radii):
+            flux_data = self.lcData[ind,:]
+            
+            params = initial_lightcurve(radius=oneRad/10.)
+            m = batman.TransitModel(params, self.time)    #initializes model
+            model_flux = m.light_curve(params)          #calculates light curve
+            #pdb.set_trace()
+            plt.plot(self.time,flux_data - lc_offset * ind,'o',
+                     color=self.colors_array[ind])
+            plt.plot(self.time,model_flux - lc_offset * ind,
+                     color=self.colors_array[ind])
+        plt.xlabel('Wavelength (microns)')
+        plt.ylabel('Size (Jupiter Radii)')
+    
+    def plot_lc(self):
+        self.plot_lc_engine()
+    
+    def plot_lc_rad_by_rad(self,rad0,rad1,rad2,rad3,rad4,rad5,rad6,rad7,rad8,rad9):
+        self.radii = [rad0,rad1,rad2,rad3,rad4,rad5,rad6,rad7,rad8,rad9]
+        self.plot_lc_engine()
+    
+    def plot_lc_i(self):
+        rs, re, ri = 1.0,2.0,0.05
+        lc_multi = interactive(self.plot_lc_rad_by_rad,
+                               rad0=(rs,re,ri),
+                               rad1=(rs,re,ri),
+                               rad2=(rs,re,ri),
+                               rad3=(rs,re,ri),
+                               rad4=(rs,re,ri),
+                               rad5=(rs,re,ri),
+                               rad6=(rs,re,ri),
+                               rad7=(rs,re,ri),
+                               rad8=(rs,re,ri),
+                               rad9=(rs,re,ri))
+        display(lc_multi)
+    
+    def plot_spectrum(self):
+        plt.plot(self.wavelengths,self.radii)
+        plt.xlabel('Wavelength (microns)')
+        plt.ylabel('Size (Jupiter Radii)')
+        plt.ylim(1.0, 2.0)
+## Now put in a background star
+# fig, ax = plt.subplots(figsize=(8,8))
+# ax.set_aspect('equal')
+# ax.set_xlim(-1.3,1.3)
+# ax.set_ylim(-1.3,1.3)
+#
+# circlePatch = plt.Circle((0., 0.), 10.,
+#                          edgecolor=one_color,facecolor='yellow')
+# ax.add_artist(circlePatch)
+# circlePatch = plt.Circle((0., 0.), np.min(radius_array) * 10.,
+#                          edgecolor='none',facecolor='black')
+# ax.add_artist(circlePatch)
+#
+# sortInd = np.argsort(radius_array)
+# for ind in sortInd:
+#     thisRadius = radius_array[ind]
+#     for max_radius,one_color in zip(radius_array,colors_array):
+#
+#         if thisRadius >= max_radius:
+#             circlePatch = plt.Circle((0., 0.), max_radius * 10.,linewidth=3,
+#                          edgecolor=one_color,facecolor='none',alpha=0.2)
+#             ax.add_artist(circlePatch)
+#
+# ax.set_xlabel('X Size in Jupiters')
+# ax.set_ylabel('Y Size in Jupiters')
