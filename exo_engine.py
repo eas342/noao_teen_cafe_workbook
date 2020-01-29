@@ -34,7 +34,7 @@ def plot_lc(radius=0.1,color='blue'):
     t = np.linspace(-1, 1, 100)
     m = batman.TransitModel(params, t)    #initializes model
     flux = m.light_curve(params)          #calculates light curve
-    plt.plot(t, flux)
+    plt.plot(t, flux, color=color)
     plt.xlabel("Time from central transit")
     plt.ylabel("Relative brightness")
     plt.ylim(0.985,1.002)
@@ -80,6 +80,9 @@ class spectral_lc:
     def spectrum_plot(self,r_slope=slopeStart):
         self.calc_radii(r_slope=r_slope)
         plt.plot(self.wavelengths,self.radius_array * 10.)
+#         for oneWave, oneRad, oneCol in zip(self.wavelengths,self.radius_array * 10.,self.colors_array):
+#             plt.plot([oneWave],[oneRad * 10.],'o',color=oneCol)
+#             pdb.set_trace()
         plt.xlabel('Wavelength (microns)')
         plt.ylabel('Size (Jupiter Radii)')
         plt.ylim(0.8,1.1)
@@ -178,7 +181,7 @@ class atmospheric_lc():
             plt.plot(self.time,model_flux - lc_offset * ind,
                      color=self.colors_array[ind])
         plt.xlabel('Wavelength (microns)')
-        plt.ylabel('Size (Jupiter Radii)')
+        plt.ylabel('Relative Brightness')
     
     def plot_lc(self):
         self.plot_lc_engine()
