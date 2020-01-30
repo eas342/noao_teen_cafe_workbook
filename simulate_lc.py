@@ -16,14 +16,14 @@ def make_lc(showPlot=False):
     np.random.seed(0)
 
     dat = Table.read('opacity_breakdown_gto_f_hd189733b.fits')
-    dat['Cloudy'] = 0.0215
+    dat['No Atmosphere'] = 0.019
     orig_wave = dat['Wave']
     
     wave_array = np.linspace(2.5,5,nWave)
     fluxArray = np.zeros([nWave,nTime])
     t = np.linspace(-1, 1, nTime)
     
-    for modInd,atmosphere in enumerate(['CO2','Cloudy','CH4','H2O']):
+    for modInd,atmosphere in enumerate(['CO2','No Atmosphere','CH4','H2O']):
         
         orig_Rad = np.sqrt(dat[atmosphere]) * 10
         orig_Rad = (orig_Rad - np.mean(orig_Rad)) * 60. + np.mean(orig_Rad) ## exaggerate to see better
