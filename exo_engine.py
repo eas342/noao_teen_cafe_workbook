@@ -34,24 +34,28 @@ def plot_lc(radius=0.1,color='blue'):
     t = np.linspace(-1, 1, 100)
     m = batman.TransitModel(params, t)    #initializes model
     flux = m.light_curve(params)          #calculates light curve
-    plt.plot(t, flux, color=color)
-    plt.xlabel("Time from central transit")
-    plt.ylabel("Relative brightness")
-    plt.ylim(0.985,1.002)
+    plt.plot(t, flux * 100., color=color)
+    plt.xlabel("Time from central transit (hours)")
+    plt.ylabel("Relative brightness (%)")
+    plt.ylim(98.5,100.2)
     return radius
 
 def plot_initial_lc():
     plot_lc(radius=0.1)
 
+
+def lc_jup_radii(radius=1.0):
+    plot_lc(radius/10.)
+
 def plot_interactive_rad():
-    lc_rad = interactive(plot_lc, radius=(0.0,0.12,0.005),color=fixed('blue'))
-    #rad = interact(plot_lc, radius=(0.0,0.12,0.005))
+    lc_rad = interactive(lc_jup_radii, radius=(0.0,1.2,0.05),color=fixed('blue'))
+    
     display(lc_rad)
     return lc_rad
 
 
-slopeStart = -0.3
-slopeEnd = 0.0
+slopeStart = 0.0
+slopeEnd = 0.3
 
 class spectral_lc:
     def __init__(self):
@@ -65,34 +69,34 @@ class spectral_lc:
         #self.limb_dark_arr = [   0.1 , 0.15   ,   0.2,   0.25     , 0.3     , 0.35]
 
     
-    def calc_radii(self,r_slope=-0.3):
-        self.radius_array = 0.1 + r_slope * (self.wavelengths - 2.5) / 50.
+    def calc_radii(self,Thickness=0.3):
+        self.radius_array = 0.08 - 0.1 * Thickness * (self.wavelengths - 6.0) / 5.
     
-    def plot_lc_multicolor_loop(self,r_slope=slopeStart):
-        self.calc_radii(r_slope=r_slope)
+    def plot_lc_multicolor_loop(self,Thickness=slopeStart):
+        self.calc_radii(Thickness=Thickness)
         for one_radius,one_color in zip(self.radius_array,self.colors_array):
             plot_lc(one_radius,color=one_color)
     
-    def plot_lc_multicolor(self,r_slope=-0.3):
-        lc_multi = interactive(self.plot_lc_multicolor_loop, r_slope=(slopeStart,slopeEnd,0.02))
+    def plot_lc_multicolor(self,Thickness=-0.3):
+        lc_multi = interactive(self.plot_lc_multicolor_loop, Thickness=(slopeStart,slopeEnd,0.02))
         display(lc_multi)
     
-    def spectrum_plot(self,r_slope=slopeStart):
-        self.calc_radii(r_slope=r_slope)
+    def spectrum_plot(self,Thickness=slopeStart):
+        self.calc_radii(Thickness=Thickness)
         plt.plot(self.wavelengths,self.radius_array * 10.)
 #         for oneWave, oneRad, oneCol in zip(self.wavelengths,self.radius_array * 10.,self.colors_array):
 #             plt.plot([oneWave],[oneRad * 10.],'o',color=oneCol)
 #             pdb.set_trace()
         plt.xlabel('Wavelength (microns)')
         plt.ylabel('Size (Jupiter Radii)')
-        plt.ylim(0.8,1.1)
+        plt.ylim(0.7,1.15)
         
     def spectrum_plot_i(self):
-        spec_p = interactive(self.spectrum_plot,r_slope=(slopeStart,slopeEnd,0.02))
+        spec_p = interactive(self.spectrum_plot,Thickness=(slopeStart,slopeEnd,0.02))
         display(spec_p)
         
-    def visualize_colors(self,r_slope=slopeStart):
-        self.calc_radii(r_slope=r_slope)
+    def visualize_colors(self,Thickness=slopeStart):
+        self.calc_radii(Thickness=Thickness)
         
         fig, ax = plt.subplots(figsize=(8,8))
         ax.set_aspect('equal')
@@ -107,11 +111,11 @@ class spectral_lc:
             ax.plot([0,self.radius_array[ind] * np.cos(angle) * 10.],
                     [0,self.radius_array[ind] * np.sin(angle) * 10.],color=self.colors_array[ind])
             ax.text(0.2,np.sin(angle)* 0.5,"{} microns".format(self.wavelengths[ind]))
-        ax.set_xlabel('X Size in Jupiters')
-        ax.set_ylabel('Y Size in Jupiters')
+        ax.set_xlabel('X Size (Jupiter Radii)')
+        ax.set_ylabel('Y Size (Jupiter Radii)')
     
     def visualize_colors_i(self):
-        size_p = interactive(self.visualize_colors,r_slope=(slopeStart,slopeEnd,0.02))
+        size_p = interactive(self.visualize_colors,Thickness=(slopeStart,slopeEnd,0.02))
         display(size_p)
 
 convertDict = {'H2O':'H$_2$O','CH4':'CH$_4$','CO2':'CO$_2$','Cloudy':'Cloudy'}
@@ -207,7 +211,7 @@ class atmospheric_lc():
     
     def plot_spectrum(self):
         plt.plot(self.wavelengths,self.radii)
-        plt.xlabel('Wavelength (microns)')
+        plt.xlabel('Time from Central Transit (hours)')
         plt.ylabel('Size (Jupiter Radii)')
         plt.ylim(1.0, 2.0)
 ## Now put in a background star
