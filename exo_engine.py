@@ -212,7 +212,7 @@ class atmospheric_lc():
     
     def plot_spectrum(self):
         plt.plot(self.wavelengths,self.radii)
-        plt.xlabel('Time from Central Transit (hours)')
+        plt.xlabel('Wavelength (microns)')
         plt.ylabel('Size (Earth Radii)')
         plt.ylim(1.0, 2.0)
 ## Now put in a background star
