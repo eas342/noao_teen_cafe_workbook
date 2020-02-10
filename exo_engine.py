@@ -6,6 +6,7 @@ from astropy.io import fits, ascii
 from astropy.table import Table
 import batman
 from ipywidgets import interactive, fixed
+from ipywidgets.embed import embed_minimal_html
 from IPython.display import display
 import pdb
 import os
@@ -53,6 +54,9 @@ def plot_interactive_rad():
     display(lc_rad)
     return lc_rad
 
+def export_interactive_rad():
+    lc_rad = interactive(lc_jup_radii, radius=(0.0,1.2,0.05),color=fixed('blue'))
+    embed_minimal_html('export.html', views=[lc_rad], title='Widgets export')
 
 slopeStart = 0.0
 slopeEnd = 0.3
